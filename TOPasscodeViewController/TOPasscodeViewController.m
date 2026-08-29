@@ -221,6 +221,8 @@
 
 - (void)viewDidLayoutSubviews
 {
+    if (self.view.bounds.size.height <= 0.0f) { return; }
+
     CGSize bounds = self.view.bounds.size;
     CGSize maxSize = bounds;
     if (@available(iOS 11.0, *)) {
@@ -257,6 +259,9 @@
 - (void)viewWillAppear:(BOOL)animated
 {
     [super viewWillAppear:animated];
+    // keyboardHeight is sticky: without this, one bad notification breaks every later
+    // presentation of the same controller instance.
+    self.keyboardHeight = 0.0f;
     [self setNeedsStatusBarAppearanceUpdate];
 
     // Force an initial layout if the view hasn't been presented yet
@@ -491,16 +496,30 @@
 #pragma mark - Keyboard Handling -
 - (void)keyboardWillChangeFrame:(NSNotification *)notification
 {
-    // Extract the keyboard information we need from the notification
-    CGRect keyboardFrame = [notification.userInfo[UIKeyboardFrameEndUserInfoKey] CGRectValue];
+    // The observer is registered with object:nil, so notifications from other windows and
+    // scenes arrive here too. A frame we cannot trust must leave keyboardHeight untouched:
+    // an end frame with origin.y == 0 would push the passcode view half a screen off the top.
+    NSValue *endFrameValue = notification.userInfo[UIKeyboardFrameEndUserInfoKey];
+    if (endFrameValue == nil) { return; }
+
+    if (@available(iOS 9.0, *)) {
+        NSNumber *isLocal = notification.userInfo[UIKeyboardIsLocalUserInfoKey];
+        if (isLocal != nil && !isLocal.boolValue) { return; }
+    }
+
+    if (self.view.window == nil) { return; }
+
+    CGRect keyboardFrame = endFrameValue.CGRectValue;
+    if (CGRectIsNull(keyboardFrame) || CGRectIsEmpty(keyboardFrame)) { return; }
+
     CGFloat animationDuration = [notification.userInfo[UIKeyboardAnimationDurationUserInfoKey] floatValue];
     UIViewAnimationOptions animationCurve = [notification.userInfo[UIKeyboardAnimationCurveUserInfoKey] integerValue];
 
-    // Work out the on-screen height of the keyboard
-    self.keyboardHeight = self.view.bounds.size.height - keyboardFrame.origin.y;
-    self.keyboardHeight = MAX(self.keyboardHeight, 0.0f);
+    // UIKeyboardFrameEndUserInfoKey is in screen coordinates; the view may not be.
+    CGRect keyboardFrameInView = [self.view convertRect:keyboardFrame fromView:nil];
+    CGFloat height = CGRectGetMaxY(self.view.bounds) - CGRectGetMinY(keyboardFrameInView);
+    self.keyboardHeight = MAX(MIN(height, self.view.bounds.size.height * 0.5f), 0.0f);
 
-    // Set that the view needs to be laid out
     [self.view setNeedsLayout];
 
     if (animationDuration < FLT_EPSILON) {
