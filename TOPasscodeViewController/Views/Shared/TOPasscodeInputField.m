@@ -37,6 +37,7 @@
 @property (nonatomic, strong, readwrite) TOPasscodeVariableInputView *variableInputView;
 @property (nonatomic, strong, readwrite) UIButton *submitButton;
 @property (nonatomic, strong, readwrite) UIVisualEffectView *visualEffectView;
+@property (nonatomic, assign, readwrite) BOOL isPerformingShakeAnimation;
 
 @end
 
@@ -102,6 +103,8 @@
 #pragma mark - View Layout -
 - (void)sizeToFit
 {
+    if (self.isPerformingShakeAnimation) { return; }
+
     // Resize the view to encompass the current input view
     CGRect frame = self.frame;
     [self.inputField sizeToFit];
@@ -259,24 +262,28 @@
 
     if (!animated) { return; }
 
-    CGPoint center = self.center;
-    CGPoint offset = center;
-    offset.x -= self.frame.size.width * 0.3f;
+    // Animate the layer transform, not `center`. Completing the last digit runs a layout
+    // pass (cancel-button title, keypad highlight reset) that writes `inputField.frame`
+    // and would cancel a position animation mid-spring.
+    CGFloat offsetX = -self.bounds.size.width * 0.3f;
+    self.transform = CGAffineTransformIdentity;
+    self.isPerformingShakeAnimation = YES;
 
-    // Play the view sliding out and then springing back in
-    id completionBlock = ^(BOOL finished) {
+    [UIView animateWithDuration:0.05f animations:^{
+        self.transform = CGAffineTransformMakeTranslation(offsetX, 0.0f);
+    } completion:^(BOOL finished) {
         [UIView animateWithDuration:1.0f
                               delay:0.0f
              usingSpringWithDamping:0.15f
               initialSpringVelocity:10.0f
-                            options:0 animations:^{
-                                self.center = center;
-                            }completion:nil];
-    };
-
-    [UIView animateWithDuration:0.05f animations:^{
-        self.center = offset;
-    }completion:completionBlock];
+                            options:UIViewAnimationOptionBeginFromCurrentState
+                         animations:^{
+                             self.transform = CGAffineTransformIdentity;
+                         } completion:^(BOOL springFinished) {
+                             self.transform = CGAffineTransformIdentity;
+                             self.isPerformingShakeAnimation = NO;
+                         }];
+    }];
 
     if (!self.submitButton) { return; }
 

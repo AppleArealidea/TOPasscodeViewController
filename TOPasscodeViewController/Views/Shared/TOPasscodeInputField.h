@@ -103,6 +103,10 @@ typedef NS_ENUM(NSInteger, TOPasscodeInputFieldStyle) {
 /* Plays a shaking animation and resets the passcode back to empty */
 - (void)resetPasscodeAnimated:(BOOL)animated playImpact:(BOOL)impact;
 
+/* YES while the incorrect-passcode spring is running. Layout must not write this
+ view's frame during that window — doing so cancels the animation. */
+@property (nonatomic, assign, readonly) BOOL isPerformingShakeAnimation;
+
 /* Animates the OK button changing location. */
 - (void)setHorizontalLayout:(BOOL)horizontalLayout animated:(BOOL)animated duration:(CGFloat)duration;
 

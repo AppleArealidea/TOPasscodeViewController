@@ -120,13 +120,15 @@
     y = CGRectGetMaxY(frame) + self.currentLayout.titleLabelBottomSpacing;
 
     // Circle Row View
-    [self.inputField sizeToFit];
-    frame = self.inputField.frame;
-    frame.origin.y = y;
-    frame.origin.x = midViewSize.width - (CGRectGetWidth(frame) * 0.5f);
-    self.inputField.frame = CGRectIntegral(frame);
+    if (!self.inputField.isPerformingShakeAnimation) {
+        [self.inputField sizeToFit];
+        frame = self.inputField.frame;
+        frame.origin.y = y;
+        frame.origin.x = midViewSize.width - (CGRectGetWidth(frame) * 0.5f);
+        self.inputField.frame = CGRectIntegral(frame);
+    }
 
-    y = CGRectGetMaxY(frame) + self.currentLayout.circleRowBottomSpacing;
+    y = CGRectGetMaxY(self.inputField.frame) + self.currentLayout.circleRowBottomSpacing;
 
     // PIN Pad View
     if (self.keypadView) {
@@ -187,9 +189,11 @@
     frame.origin.y += (frame.size.height + self.currentLayout.titleLabelHorizontalBottomSpacing);
 
     // Set frame of the input field
-    frame.size = self.inputField.frame.size;
-    frame.origin.x = (self.currentLayout.titleHorizontalLayoutWidth - frame.size.width) * 0.5f;
-    self.inputField.frame = CGRectIntegral(frame);
+    if (!self.inputField.isPerformingShakeAnimation) {
+        frame.size = self.inputField.frame.size;
+        frame.origin.x = (self.currentLayout.titleHorizontalLayoutWidth - frame.size.width) * 0.5f;
+        self.inputField.frame = CGRectIntegral(frame);
+    }
 
     // Set the frame of the keypad view
     frame.size = self.keypadView.frame.size;

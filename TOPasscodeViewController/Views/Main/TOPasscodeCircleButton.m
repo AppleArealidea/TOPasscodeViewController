@@ -63,6 +63,9 @@
 {
     if (!self.circleView) {
         self.circleView = [[TOPasscodeCircleView alloc] initWithFrame:self.bounds];
+        // The circle lives inside a vibrancy content view, where revealing a separate
+        // highlight view would kill the effect for good.
+        self.circleView.swapsImageForHighlight = YES;
         [self addSubview:self.circleView];
     }
 
@@ -89,7 +92,9 @@
     if (self.allTargets.count) { return; }
 
     [self addTarget:self action:@selector(buttonDidTouchDown:) forControlEvents:UIControlEventTouchDown];
-    [self addTarget:self action:@selector(buttonDidTouchUpInside:) forControlEvents:UIControlEventTouchUpInside];
+    [self addTarget:self
+             action:@selector(buttonDidFinishTouch:)
+   forControlEvents:UIControlEventTouchUpInside | UIControlEventTouchUpOutside | UIControlEventTouchCancel];
     [self addTarget:self action:@selector(buttonDidDragInside:) forControlEvents:UIControlEventTouchDragEnter];
     [self addTarget:self action:@selector(buttonDidDragOutside:) forControlEvents:UIControlEventTouchDragExit];
 }
@@ -108,13 +113,26 @@
 
 - (void)buttonDidTouchDown:(id)sender
 {
-    if (self.buttonTappedHandler) { self.buttonTappedHandler(); }
+    // The handler runs a layout pass further up the tree, which can end touch tracking.
+    // Highlight first so the tracking state cannot outlive an already finished touch.
     [self setHighlighted:YES animated:NO];
+    if (self.buttonTappedHandler) { self.buttonTappedHandler(); }
 }
 
-- (void)buttonDidTouchUpInside:(id)sender { [self setHighlighted:NO animated:YES]; }
-- (void)buttonDidDragInside:(id)sender    { [self setHighlighted:YES animated:NO]; }
-- (void)buttonDidDragOutside:(id)sender   { [self setHighlighted:NO animated:YES]; }
+- (void)buttonDidFinishTouch:(id)sender { [self setHighlighted:NO animated:YES]; }
+- (void)buttonDidDragInside:(id)sender  { [self setHighlighted:YES animated:NO]; }
+- (void)buttonDidDragOutside:(id)sender { [self setHighlighted:NO animated:YES]; }
+
+#pragma mark - Highlight State -
+
+// UIControl clears `highlighted` whenever tracking finishes — touch up, drag out, or a
+// system cancellation. Deriving the circle from that state instead of from a hand-picked
+// list of control events is what keeps the highlight from surviving the touch.
+- (void)setHighlighted:(BOOL)highlighted
+{
+    [super setHighlighted:highlighted];
+    [self setHighlighted:highlighted animated:!highlighted];
+}
 
 #pragma mark - Animated Accessors -
 
@@ -230,7 +248,8 @@
     _contentAlpha = contentAlpha;
 
     self.buttonLabel.alpha = contentAlpha;
-    self.circleView.alpha = contentAlpha;
+    // Fade the effect view, not the circle inside it, for the same reason as the highlight.
+    self.vibrancyView.alpha = contentAlpha;
 }
 
 @end

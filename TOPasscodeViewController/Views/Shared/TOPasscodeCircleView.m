@@ -56,11 +56,32 @@
     [self setHighlighted:isHighlighted animated:NO];
 }
 
+- (void)setSwapsImageForHighlight:(BOOL)swapsImageForHighlight
+{
+    if (_swapsImageForHighlight == swapsImageForHighlight) { return; }
+    _swapsImageForHighlight = swapsImageForHighlight;
+
+    if (_swapsImageForHighlight) {
+        self.topView.hidden = YES;
+        self.bottomView.image = self.isHighlighted ? self.highlightedCircleImage : self.circleImage;
+    }
+    else {
+        self.topView.hidden = NO;
+        self.topView.alpha = self.isHighlighted ? 1.0f : 0.0f;
+        self.bottomView.image = self.circleImage;
+    }
+}
+
 - (void)setHighlighted:(BOOL)highlighted animated:(BOOL)animated
 {
     if (highlighted == self.isHighlighted) { return; }
 
     _isHighlighted = highlighted;
+
+    if (self.swapsImageForHighlight) {
+        self.bottomView.image = highlighted ? self.highlightedCircleImage : self.circleImage;
+        return;
+    }
 
     void (^animationBlock)(void) = ^{
         self.topView.alpha = highlighted ? 1.0f : 0.0f;
@@ -77,6 +98,8 @@
 - (void)setCircleImage:(UIImage *)circleImage
 {
     _circleImage = circleImage;
+
+    if (self.swapsImageForHighlight && self.isHighlighted) { return; }
     self.bottomView.image = circleImage;
 }
 
@@ -84,6 +107,10 @@
 {
     _highlightedCircleImage = highlightedCircleImage;
     self.topView.image = highlightedCircleImage;
+
+    if (self.swapsImageForHighlight && self.isHighlighted) {
+        self.bottomView.image = highlightedCircleImage;
+    }
 }
 
 @end

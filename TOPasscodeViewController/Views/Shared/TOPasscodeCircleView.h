@@ -38,6 +38,15 @@ NS_ASSUME_NONNULL_BEGIN
 /* Whether the highlighted view is visible. */
 @property (nonatomic, assign) BOOL isHighlighted;
 
+/* Draw the highlight by swapping the image of the circle itself instead of revealing a
+ second view on top of it.
+
+ Revealing or fading a subview inside a `UIVisualEffectView` content view makes the effect
+ view stop applying its effect for good, so a circle that lives inside a vibrancy content
+ view must opt into this. Swapping the image of an already visible view is safe. The
+ trade-off is that the highlight no longer cross-fades. */
+@property (nonatomic, assign) BOOL swapsImageForHighlight;
+
 /* Animate the circle to be highlighted */
 - (void)setHighlighted:(BOOL)highlighted animated:(BOOL)animated;
 
