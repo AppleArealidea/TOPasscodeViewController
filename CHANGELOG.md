@@ -1,3 +1,15 @@
+0.0.7 - 2026-10-05
+=============================================================
+
+### Fixed
+
+* A presentation or dismissal whose animation ended early was rolled back by UIKit: the
+  animator completed the transition with the animation's `finished` flag, which is `NO`
+  when the scene moves to the background mid-transition. A passcode controller presented
+  in the background was removed again, and one dismissed right before the app was
+  backgrounded stayed on screen with its content hidden. The transition is now completed
+  according to `transitionWasCancelled`.
+
 0.0.6 - 2026-08-30
 =============================================================
 

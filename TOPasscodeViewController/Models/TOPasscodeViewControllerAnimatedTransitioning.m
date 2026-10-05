@@ -97,7 +97,9 @@
 
     id completedBlock = ^(BOOL completed) {
         backgroundEffectView.effect = backgroundEffect;
-        [transitionContext completeTransition:completed];
+        // `completed` is NO whenever the animation ends early, e.g. when the scene moves to the background.
+        // Passing it on would make UIKit roll the transition back.
+        [transitionContext completeTransition:![transitionContext transitionWasCancelled]];
     };
 
     // If we're animating out from a successful passcode, play a zooming out animation
